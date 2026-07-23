@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>بازی هنگ من | حدس کلمه</title>
+    <link rel="stylesheet" href="./hangman.css">
+</head>
+<body>
+    <div class="container">
+        <h1>بازی هنگ من | حدس کلمه</h1>
+        
+        <div class="game-area">
+            <div class="hangman-container">
+                <div class="scaffold base"></div>
+                <div class="scaffold pole"></div>
+                <div class="scaffold top-bar"></div>
+                <div class="rope"></div>
+                <div class="head"></div>
+                <div class="body"></div>
+                <div class="arm-left"></div>
+                <div class="arm-right"></div>
+                <div class="leg-left"></div>
+                <div class="leg-right"></div>
+                <div class="face">💀</div>
+            </div>
+            
+            <div class="attempts">تعداد اشتباهات باقیمانده: <span id="remaining-attempts">6</span></div>
+            
+            <div class="word-display" id="word-display"></div>
+            
+            <div class="hint" id="hint"></div>
+            
+            <div class="keyboard" id="keyboard"></div>
+            
+            <div class="message" id="message"></div>
+            
+            <button class="btn" id="reset-btn">بازی جدید</button>
+        </div>
+    </div>
+
+    <script>// Database of words with categories and hints
+const wordsDB = [
+    // Animals
+    { word: "گربه", hint: "حیوانی خانگی که میو میو می‌کند" },
+    { word: "سگ", hint: "وفادارترین حیوان خانگی" },
+    { word: "فیل", hint: "بزرگترین حیوان خشکی" },
+    { word: "شیر", hint: "پادشاه جنگل" },
+    { word: "پلنگ", hint: "گربه‌سان خال‌دار" },
+    { word: "خرس", hint: "حیوانی بزرگ و پشمالو که در زمستان خواب زمستانی می‌کند" },
+    { word: "روباه", hint: "حیوانی حیله‌گر با دم بزرگ" },
+    { word: "گرگ", hint: "با زوزه‌های شبانه شناخته می‌شود" },
+    { word: "اسب", hint: "برای سواری و حمل بار استفاده می‌شود" },
+    { word: "گاو", hint: "شیر مفید می‌دهد" },
+    
+    // Fruits
+    { word: "سیب", hint: "میوه‌ای قرمز یا سبز که نیوتون را به فکر فرو برد" },
+    { word: "موز", hint: "میوه‌ای زرد و خمیده" },
+    { word: "پرتقال", hint: "میوه‌ای گرد و نارنجی رنگ" },
+    { word: "انگور", hint: "میوه‌ای خوشه‌ای برای کشمش" },
+    { word: "هندوانه", hint: "میوه‌ای بزرگ با پوست سبز و مغز قرمز" },
+    { word: "انار", hint: "میوه‌ای با دانه‌های یاقوتی" },
+    { word: "کیوی", hint: "میوه‌ای سبز و پشمالو" },
+    { word: "آلو", hint: "میوه‌ای کوچک و شیرین با هسته" },
+    
+    // Countries
+    { word: "ایران", hint: "کشور چهارفصل با تاریخ کهن" },
+    { word: "فرانسه", hint: "کشور برج ایفل" },
+    { word: "ایتالیا", hint: "کشور پیتزا و کولوسئوم" },
+    { word: "ژاپن", hint: "کشور خورشید تابان" },
+    { word: "چین", hint: "کشور دیوار بزرگ" },
+    { word: "آلمان", hint: "کشور برندنبرگ و اتوبان" },
+    { word: "کانادا", hint: "کشور برگ افرا" },
+    { word: "برزیل", hint: "کشور فوتبال و کارناوال" },
+    
+    // Professions
+    { word: "معلم", hint: "شغل انتقال دانش" },
+    { word: "پزشک", hint: "بهبوددهنده سلامتی" },
+    { word: "مهندس", hint: "طراحی و ساخت سازه‌ها" },
+    { word: "نقاش", hint: "خالق آثار هنری با رنگ" },
+    { word: "موسیقیدان", hint: "نوازنده و خالق ملودی" },
+    { word: "خلبان", hint: "هواپیما را هدایت می‌کند" },
+    
+    // Nature
+    { word: "آسمان", hint: "بالای سر ماست" },
+    { word: "دریا", hint: "بزرگ و آبی و مواج" },
+    { word: "کوه", hint: "سر به فلک کشیده" },
+    { word: "رودخانه", hint: "آب روان به سوی دریا" },
+    { word: "جنگل", hint: "پر از درخت و حیات وحش" },
+    { word: "گل", hint: "زیبا و خوشبو در باغچه" },
+    
+    // Technology
+    { word: "رایانه", hint: "دستگاهی برای محاسبات و اینترنت" },
+    { word: "موبایل", hint: "ارتباطات همراه" },
+    { word: "اینترنت", hint: "شبکه جهانی اطلاعات" },
+    { word: "برنامه", hint: "نرم‌افزار کامپیوتری" },
+    { word: "کتاب", hint: "منبع دانش و سرگرمی" },
+    { word: "قلم", hint: "ابزار نوشتن" },
+    
+    // Body parts
+    { word: "دست", hint: "برای گرفتن و کار کردن" },
+    { word: "پا", hint: "برای راه رفتن" },
+    { word: "چشم", hint: "برای دیدن جهان" },
+    { word: "گوش", hint: "برای شنیدن صداها" },
+    { word: "بینی", hint: "برای بو کردن" },
+    { word: "دهان", hint: "برای خوردن و حرف زدن" },
+    
+    // Foods
+    { word: "نان", hint: "قوت اصلی سفره ایرانی" },
+    { word: "برنج", hint: "غذای اصلی ایرانی‌ها" },
+    { word: "پیتزا", hint: "غذای محبوب ایتالیایی" },
+    { word: "ماکارونی", hint: "پاستای اسپاگتی" },
+    { word: "کباب", hint: "غذای خوشمزه ایرانی" },
+    { word: "سوپ", hint: "غذای مایع گرم" },
+    
+    // Colors
+    { word: "قرمز", hint: "رنگ خون و آتش" },
+    { word: "آبی", hint: "رنگ آسمان و دریا" },
+    { word: "سبز", hint: "رنگ طبیعت و بهار" },
+    { word: "زرد", hint: "رنگ خورشید و گل آفتابگردان" },
+    { word: "بنفش", hint: "رنگ ارغوان و یاس" },
+    { word: "نارنجی", hint: "رنگ میوه پرتقال" },
+    
+    // Sports
+    { word: "فوتبال", hint: "پرطرفدارترین ورزش جهان" },
+    { word: "بسکتبال", hint: "ورزش با توپ و حلقه" },
+    { word: "تنیس", hint: "ورزش راکت و توپ" },
+    { word: "شنا", hint: "ورزش در آب" },
+    { word: "دویدن", hint: "سریع حرکت کردن با پاها" },
+    { word: "دوچرخه", hint: "وسیله نقلیه دو چرخ" },
+    
+    // Other words
+    { word: "ستاره", hint: "می‌درخشد در آسمان شب" },
+    { word: "ماه", hint: "همسفر شب‌های زمین" },
+    { word: "خورشید", hint: "منبع نور و گرما" },
+    { word: "باران", hint: "قطرات آب از آسمان" },
+    { word: "برف", hint: "سفید و سرد از آسمان" },
+    { word: "باد", hint: "حرکت هوای اطراف ما" },
+    { word: "آتش", hint: "گرم و روشن و خطرناک" },
+    { word: "آب", hint: "مایع زندگی‌بخش" },
+    { word: "خاک", hint: "زمین زیر پای ما" },
+    { word: "امید", hint: "روشنایی در تاریکی" },
+    { word: "عشق", hint: "زیباترین احساس" },
+    { word: "دوست", hint: "همراه و همدل" },
+    { word: "خانواده", hint: "گل سرسبد زندگی" },
+    { word: "مدرسه", hint: "خانه دوم دانش‌آموزان" },
+    { word: "دانشگاه", hint: "محل تحصیلات عالی" },
+    { word: "کتابخانه", hint: "گنجینه کتاب‌ها" },
+    { word: "بیمارستان", hint: "محل درمان بیماران" },
+    { word: "رستوران", hint: "محل صرف غذا" },
+    { word: "هتل", hint: "محل اقامت مسافران" },
+    { word: "فرودگاه", hint: "محل پرواز هواپیماها" }
+];
+
+// Game State
+let state = {
+    word: '',
+    hint: '',
+    display: [],
+    wrongGuesses: 0,
+    maxWrong: 6,
+    guessedLetters: [],
+    gameOver: false,
+    won: false
+};
+
+// DOM Elements
+const wordDisplay = document.getElementById('word-display');
+const keyboard = document.getElementById('keyboard');
+const hintDisplay = document.getElementById('hint');
+const remainingAttempts = document.getElementById('remaining-attempts');
+const message = document.getElementById('message');
+const resetBtn = document.getElementById('reset-btn');
+
+// Hangman body parts
+const bodyParts = {
+    head: document.querySelector('.head'),
+    body: document.querySelector('.body'),
+    armLeft: document.querySelector('.arm-left'),
+    armRight: document.querySelector('.arm-right'),
+    legLeft: document.querySelector('.leg-left'),
+    legRight: document.querySelector('.leg-right'),
+    face: document.querySelector('.face')
+};
+
+// Persian alphabet
+const persianLetters = [
+    'آ', 'ا', 'ب', 'پ', 'ت', 'ث', 'ج', 'چ', 'ح', 'خ',
+    'د', 'ذ', 'ر', 'ز', 'ژ', 'س', 'ش', 'ص', 'ض', 'ط',
+    'ظ', 'ع', 'غ', 'ف', 'ق', 'ک', 'گ', 'ل', 'م', 'ن',
+    'و', 'ه', 'ی', 'ئ'
+];
+
+// Initialize game
+function initGame() {
+    // Reset state
+    state.wrongGuesses = 0;
+    state.guessedLetters = [];
+    state.gameOver = false;
+    state.won = false;
+    
+    // Select random word
+    const randomIndex = Math.floor(Math.random() * wordsDB.length);
+    const selectedWord = wordsDB[randomIndex];
+    state.word = selectedWord.word;
+    state.hint = selectedWord.hint;
+    
+    // Create display array with underscores
+    state.display = state.word.split('').map(char => {
+        return char === ' ' ? ' ' : '_';
+    });
+    
+    // Update UI
+    updateWordDisplay();
+    updateHints();
+    updateAttempts();
+    clearMessage();
+    createKeyboard();
+    resetHangman();
+    
+    // Show keyboard
+    keyboard.style.display = 'grid';
+}
+
+// Create keyboard
+function createKeyboard() {
+    keyboard.innerHTML = '';
+    
+    persianLetters.forEach(letter => {
+        const btn = document.createElement('button');
+        btn.className = 'key';
+        btn.textContent = letter;
+        btn.dataset.letter = letter;
+        btn.addEventListener('click', () => handleGuess(letter, btn));
+        keyboard.appendChild(btn);
+    });
+}
+
+// Handle guess
+function handleGuess(letter, btn) {
+    if (state.gameOver || btn.disabled) return;
+    
+    btn.disabled = true;
+    state.guessedLetters.push(letter);
+    
+    let found = false;
+    const wordLetters = state.word.split('');
+    
+    // Check if letter exists in word
+    for (let i = 0; i < wordLetters.length; i++) {
+        if (wordLetters[i] === letter) {
+            state.display[i] = letter;
+            found = true;
+        }
+    }
+    
+    if (!found) {
+        state.wrongGuesses++;
+        updateAttempts();
+        updateHangman(state.wrongGuesses);
+    } else {
+        // Check for spaces and letters
+        const allFound = state.display.every(char => char !== '_');
+        if (allFound) {
+            state.won = true;
+            state.gameOver = true;
+            showMessage('🎉 آفرین! کلمه را درست حدس زدی!', 'win');
+            disableAllKeys();
+            return;
+        }
+    }
+    
+    updateWordDisplay();
+    
+    // Check if lost
+    if (state.wrongGuesses >= state.maxWrong) {
+        state.gameOver = true;
+        showMessage(`😔 بازی تمام شد! کلمه "${state.word}" بود.`, 'lose');
+        disableAllKeys();
+        revealWord();
+    }
+}
+
+// Update word display
+function updateWordDisplay() {
+    wordDisplay.textContent = state.display.join(' ');
+}
+
+// Update hints
+function updateHints() {
+    hintDisplay.textContent = `📌 راهنما: ${state.hint}`;
+}
+
+// Update attempts
+function updateAttempts() {
+    const remaining = state.maxWrong - state.wrongGuesses;
+    remainingAttempts.textContent = remaining;
+}
+
+// Update hangman
+function updateHangman(wrongGuesses) {
+    const parts = [
+        'head',
+        'body',
+        'armLeft',
+        'armRight',
+        'legLeft',
+        'legRight'
+    ];
+    
+    // Reset all parts
+    resetHangman();
+    
+    // Show parts based on wrong guesses
+    for (let i = 0; i < wrongGuesses && i < parts.length; i++) {
+        const part = bodyParts[parts[i]];
+        if (part) {
+            part.style.display = 'block';
+        }
+    }
+    
+    // Show face only when all parts are displayed
+    if (wrongGuesses === state.maxWrong) {
+        bodyParts.face.style.display = 'block';
+        bodyParts.face.textContent = '💀';
+    } else if (wrongGuesses > 0) {
+        bodyParts.face.style.display = 'block';
+        // Update face expression based on progress
+        const expressions = ['😐', '😕', '😟', '😰', '😨', '😱'];
+        const index = Math.min(wrongGuesses - 1, expressions.length - 1);
+        bodyParts.face.textContent = expressions[index];
+    }
+}
+
+// Reset hangman
+function resetHangman() {
+    const parts = ['head', 'body', 'armLeft', 'armRight', 'legLeft', 'legRight', 'face'];
+    parts.forEach(part => {
+        if (bodyParts[part]) {
+            bodyParts[part].style.display = 'none';
+        }
+    });
+}
+
+// Disable all keys
+function disableAllKeys() {
+    const keys = keyboard.querySelectorAll('.key');
+    keys.forEach(btn => btn.disabled = true);
+}
+
+// Reveal word
+function revealWord() {
+    const wordLetters = state.word.split('');
+    state.display = wordLetters;
+    updateWordDisplay();
+}
+
+// Show message
+function showMessage(text, type) {
+    message.textContent = text;
+    message.className = `message ${type}`;
+    message.style.display = 'block';
+}
+
+// Clear message
+function clearMessage() {
+    message.style.display = 'none';
+    message.className = 'message';
+}
+
+// Reset game
+function resetGame() {
+    initGame();
+}
+
+// Event listeners
+resetBtn.addEventListener('click', resetGame);
+
+// Keyboard support
+document.addEventListener('keydown', (e) => {
+    const key = e.key;
+    const letter = key.toLowerCase();
+    
+    // Only handle Persian letters
+    if (persianLetters.includes(letter)) {
+        const btn = keyboard.querySelector(`[data-letter="${letter}"]`);
+        if (btn && !btn.disabled) {
+            btn.click();
+        }
+    }
+});
+
+// Initialize game on load
+window.addEventListener('load', () => {
+    // Show initial hangman
+    resetHangman();
+    initGame();
+});
+
+document.head.appendChild(style);</script>
+</body>
+</html>
